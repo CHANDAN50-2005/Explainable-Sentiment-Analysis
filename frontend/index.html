@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SentimentAI — Explainable Transformer Analysis</title>
+  <meta name="description" content="Explainable AI sentiment analysis powered by DistilBERT transformers. See exactly which words drive every prediction." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <!-- ── Background particles ─────────────────────────────────────────────── -->
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="orb orb-1" aria-hidden="true"></div>
+  <div class="orb orb-2" aria-hidden="true"></div>
+
+  <!-- ── Header ────────────────────────────────────────────────────────────── -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-icon">🧠</span>
+        <span class="logo-text">SentimentAI</span>
+        <span class="logo-badge">Explainable</span>
+      </div>
+      <nav class="header-nav">
+        <a href="/docs" target="_blank" class="nav-link">API Docs</a>
+        <div class="status-indicator" id="statusIndicator">
+          <span class="status-dot" id="statusDot"></span>
+          <span class="status-text" id="statusText">Checking…</span>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ── Main ──────────────────────────────────────────────────────────────── -->
+  <main class="main">
+
+    <!-- Hero section -->
+    <section class="hero">
+      <h1 class="hero-title">
+        Understand <span class="gradient-text">Why</span> AI thinks what it thinks
+      </h1>
+      <p class="hero-sub">
+        Powered by DistilBERT · LIME explainability · Attention visualization
+      </p>
+    </section>
+
+    <!-- ── Metrics strip ───────────────────────────────────────────────────── -->
+    <div class="metrics-strip" id="metricsStrip">
+      <div class="metric-card">
+        <span class="metric-value" id="metricAccuracy">—</span>
+        <span class="metric-label">Accuracy</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-value" id="metricF1">—</span>
+        <span class="metric-label">F1 Score</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-value" id="metricAUC">—</span>
+        <span class="metric-label">AUC-ROC</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-value">DistilBERT</span>
+        <span class="metric-label">Model</span>
+      </div>
+    </div>
+
+    <!-- ── Input panel ─────────────────────────────────────────────────────── -->
+    <section class="card input-card">
+      <div class="card-header">
+        <h2 class="card-title">
+          <span class="card-icon">✍️</span> Analyze Text
+        </h2>
+        <button class="btn btn-ghost" id="btnClear" title="Clear input">✕ Clear</button>
+      </div>
+
+      <textarea
+        id="textInput"
+        class="text-input"
+        placeholder="Enter a sentence, review, or comment to analyze…"
+        rows="4"
+        maxlength="2000"
+        aria-label="Text input for sentiment analysis"
+      ></textarea>
+
+      <div class="input-footer">
+        <span class="char-count" id="charCount">0 / 2000</span>
+        <div class="btn-group">
+          <button class="btn btn-secondary" id="btnExamples">🎲 Try Example</button>
+          <button class="btn btn-primary" id="btnAnalyze" disabled>
+            <span class="btn-text">Analyze →</span>
+            <span class="btn-spinner" hidden>⟳</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Results container ─────────────────────────────────────────────────  -->
+    <div id="resultsContainer" class="results-container" hidden>
+
+      <!-- Prediction card -->
+      <section class="card result-card" id="predictionCard">
+        <div class="card-header">
+          <h2 class="card-title"><span class="card-icon">🎯</span> Prediction</h2>
+          <span class="processing-time" id="processingTime"></span>
+        </div>
+
+        <div class="prediction-body">
+          <div class="sentiment-badge-wrap">
+            <div class="sentiment-badge" id="sentimentBadge">
+              <span class="sentiment-icon" id="sentimentIcon"></span>
+              <span class="sentiment-label" id="sentimentLabel"></span>
+            </div>
+          </div>
+
+          <!-- Confidence gauge -->
+          <div class="gauge-wrap">
+            <svg class="gauge-svg" viewBox="0 0 200 120" aria-hidden="true">
+              <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#1e293b" stroke-width="16" stroke-linecap="round"/>
+              <path id="gaugeArc" d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#4f8ef7" stroke-width="16" stroke-linecap="round"
+                    stroke-dasharray="251.2" stroke-dashoffset="251.2"/>
+              <text x="100" y="108" text-anchor="middle" class="gauge-pct" id="gaugePct">0%</text>
+              <text x="100" y="80" text-anchor="middle" class="gauge-sub">Confidence</text>
+            </svg>
+          </div>
+
+          <!-- Probability bars -->
+          <div class="prob-bars">
+            <div class="prob-row">
+              <span class="prob-label neg-label">NEGATIVE</span>
+              <div class="prob-track">
+                <div class="prob-fill neg-fill" id="probNeg" style="width:0%"></div>
+              </div>
+              <span class="prob-value" id="probNegVal">0%</span>
+            </div>
+            <div class="prob-row">
+              <span class="prob-label pos-label">POSITIVE</span>
+              <div class="prob-track">
+                <div class="prob-fill pos-fill" id="probPos" style="width:0%"></div>
+              </div>
+              <span class="prob-value" id="probPosVal">0%</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Attention heatmap card -->
+      <section class="card" id="attentionCard">
+        <div class="card-header">
+          <h2 class="card-title"><span class="card-icon">🔥</span> Attention Heatmap</h2>
+          <span class="card-desc">Token-level attention weights from DistilBERT's last layer</span>
+        </div>
+        <div class="attention-container" id="attentionContainer">
+          <!-- Token chips rendered by JS -->
+        </div>
+        <div class="legend">
+          <span class="legend-low">Low attention</span>
+          <div class="legend-bar"></div>
+          <span class="legend-high">High attention</span>
+        </div>
+      </section>
+
+      <!-- LIME card -->
+      <section class="card" id="limeCard">
+        <div class="card-header">
+          <h2 class="card-title"><span class="card-icon">📊</span> LIME Word Importance</h2>
+          <span class="card-desc">Which words push toward each sentiment class</span>
+        </div>
+        <div class="lime-chart" id="limeChart">
+          <!-- Bars rendered by JS -->
+        </div>
+        <div class="lime-legend">
+          <span class="lime-pos-key">▮ Pushes → POSITIVE</span>
+          <span class="lime-neg-key">▮ Pushes → NEGATIVE</span>
+        </div>
+      </section>
+
+    </div><!-- /resultsContainer -->
+
+    <!-- ── Error toast ────────────────────────────────────────────────────── -->
+    <div class="toast" id="errorToast" hidden>
+      <span class="toast-icon">⚠️</span>
+      <span class="toast-msg" id="toastMsg"></span>
+    </div>
+
+    <!-- ── Examples modal ─────────────────────────────────────────────────── -->
+    <div class="modal-overlay" id="examplesModal" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-label="Example sentences">
+        <div class="modal-header">
+          <h3>Example Sentences</h3>
+          <button class="modal-close" id="modalClose" aria-label="Close">✕</button>
+        </div>
+        <ul class="example-list" id="exampleList"></ul>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ── Footer ────────────────────────────────────────────────────────────── -->
+  <footer class="footer">
+    <p>
+      Built with <strong>DistilBERT</strong> · <strong>FastAPI</strong> · <strong>LIME</strong>
+      &nbsp;|&nbsp; NLP MiniProject
+    </p>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

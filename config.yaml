@@ -1,0 +1,62 @@
+# ============================================================
+#  Explainable Transformer Sentiment Analysis - Configuration
+# ============================================================
+
+# Model Settings
+model:
+  base_model: "distilbert-base-uncased"
+  num_labels: 2
+  labels:
+    0: "NEGATIVE"
+    1: "POSITIVE"
+  max_length: 128
+  dropout: 0.3
+  save_dir: "models/distilbert-sentiment"
+
+# Training Settings
+training:
+  epochs: 1
+  batch_size: 16
+  learning_rate: 2.0e-5
+  weight_decay: 0.01
+  warmup_ratio: 0.1
+  eval_steps: 500
+  save_steps: 500
+  logging_steps: 100
+  seed: 42
+  fp16: false
+
+# Data Settings
+data:
+  dataset_name: "stanfordnlp/sst2"
+  dataset_config: "default"
+  train_split: "train"
+  validation_split: "validation"
+  test_split: "validation"
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  max_train_samples: 2000   # quick-test mode — remove null to train on full dataset
+  max_val_samples: 500
+
+# Explainability Settings
+explainability:
+  lime_num_samples: 500
+  lime_num_features: 10
+  attention_layer: -1
+  attention_head: "mean"
+
+# Evaluation Settings
+evaluation:
+  report_dir: "reports"
+  attention_examples_dir: "reports/attention_examples"
+  batch_size: 32
+
+# API Settings
+api:
+  host: "0.0.0.0"
+  port: 8000
+  reload: true
+  cors_origins:
+    - "http://localhost"
+    - "http://localhost:8000"
+    - "http://127.0.0.1:8000"
